@@ -1,12 +1,49 @@
 <!DOCTYPE html>
 <html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>WhatKiamber - Conectar WhatsApp</title>
-<style>body{font-family:system-ui;padding:40px;max-width:600px;margin:0 auto} .btn{background:#1877F2;color:#fff;padding:14px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer;display:inline-block;text-decoration:none}</style>
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatSeller - Conectar WhatsApp</title>
+<style>body{font-family:system-ui;padding:40px;max-width:600px;margin:0 auto} .btn{background:#25D366;color:#fff;padding:14px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer} </style>
 </head>
 <body>
-<h1>Conecta tu WhatsApp a SellerChat</h1>
-<p>Da acceso admin temporal a onboarding@sellerchat.ai para configurar tu WhatsApp.</p>
-<a class="btn" href="https://www.facebook.com/v20.0/dialog/oauth?client_id=811281598468466&redirect_uri=https%3A%2F%2Fprooveedordetecnologyia.vercel.app%2Fapi%2Fcallback&scope=business_management%2Cwhatsapp_business_management%2Cwhatsapp_business_messaging&response_type=code">Continuar con Facebook</a>
-<p style="margin-top:20px;font-size:12px;color:#666">App: 811281598468466 - BM: Kiamber 832691819931306</p>
+<h1>Conecta tu WhatsApp a WhatSeller</h1>
+<p>Config: 1889600718898450 - App: 811281598468466</p>
+<button class="btn" onclick="launchWhatsAppSignup()">Conectar WhatsApp</button>
+<div id="result" style="margin-top:20px;word-break:break-all;font-size:12px"></div>
+
+<script>
+  window.fbAsyncInit = function() {
+    FB.init({ appId: '811281598468466', autoLogAppEvents: true, xfbml: true, version: 'v20.0' });
+  };
+</script>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+
+<script>
+function launchWhatsAppSignup() {
+  FB.login(function(response) {
+    console.log('FB response', response);
+    if (response.authResponse) {
+      const code = response.authResponse.code;
+      document.getElementById('result').innerText = 'Code recibido: ' + code + ' - Enviando a backend...';
+      // Enviar code al backend para intercambiar por token
+      fetch(`/api/callback?code=${encodeURIComponent(code)}`)
+        .then(r => r.json())
+        .then(j => {
+          document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(j, null, 2) + '</pre>';
+        });
+    } else {
+      document.getElementById('result').innerText = 'Cancelado o error: ' + JSON.stringify(response);
+    }
+  }, {
+    config_id: '1889600718898450',
+    response_type: 'code',
+    override_default_response_type: true,
+    extras: {
+      setup: {},
+      featureType: 'whatsapp_business_app_onboarding'
+    }
+  });
+}
+</script>
 </body>
 </html>

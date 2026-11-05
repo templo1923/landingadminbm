@@ -1,15 +1,21 @@
-# WhatKiamber Landing Simple - Solo Admin
+# WhatSeller Final - Config 1889600718898450
 
-Flujo:
-1. /index.html -> Login Facebook con scope business_management, whatsapp_business_management, whatsapp_business_messaging
-2. /api/callback.js -> Cambia code por EAAL token + lista BMs (Kiamber 832691819931306, cositas 215054423376570, etc)
-3. /callback.html?token=EAAL...&businesses=[...] -> Muestra portafolios y botón Autorizar
-4. /api/invite?business_id=ID&token=EAAL -> Invita a onboarding@sellerchat.ai como ADMIN al BM
+App: 811281598468466
+Config ID: 1889600718898450 (WhatSeller)
+BM: COSITAS DELICIOSAS S.A.S 215054423376570 verificado
+Kiamber BM: 832691819931306
 
-No crea System User 61583364092265 ni pide token de app. Por eso no sale "Request is no longer pending".
+Flujo nuevo con Embedded Signup (sin api/invite):
+1. index.html -> FB.login con config_id 1889600718898450
+2. Usuario elige empresa y WABA (ej: Kiamber 832691819931306 y WABA 1146913454580655)
+3. Facebook devuelve code
+4. api/callback.js cambia code por access_token de System User (60 dias)
+5. Con ese token ya puedes llamar a /me/businesses y /me/whatsapp_business_accounts
 
-Para desplegar en Vercel:
-- Sube este zip
-- Framework: Other
-- No necesita env vars
-- Dominios OAuth en App 811281598468466: https://prooveedordetecnologyia.vercel.app/api/callback
+No necesita POST /business_users por eso no da error (#100) ni Request is no longer pending.
+
+Para deployar en Vercel:
+- Sube estos 2 archivos: index.html y api/callback.js
+- No uses vercel.json
+- En App 811281598468466 > Facebook Login > Valid OAuth Redirect URIs: https://prooveedordetecnologyia.vercel.app/
+- En Dominios: prooveedordetecnologyia.vercel.app

@@ -1,65 +1,6 @@
 <!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Selecciona portafolio</title>
-<style>body{font-family:system-ui;padding:20px;max-width:700px;margin:0 auto} button{margin:8px 0;padding:12px 18px;border:1px solid #ddd;border-radius:8px;cursor:pointer;width:100%;text-align:left;background:#fff} button:hover{background:#f5f5f5} #token{font-size:10px;color:#999;word-break:break-all;background:#f9f9f9;padding:10px;margin:10px 0;display:none} .ok{color:green} .err{color:red}</style>
-</head>
+<html><head><meta charset="UTF-8"><title>Callback viejo - no usar</title></head>
 <body>
-<h2>Selecciona tu portafolio</h2>
-<p>Elige el portafolio donde quieres dar acceso admin a <b>onboarding@sellerchat.ai</b></p>
-<div id="list">Cargando...</div>
-<div id="result"></div>
-<div id="token"></div>
-
-<script>
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get('token');
-  let businesses = [];
-  try { businesses = JSON.parse(decodeURIComponent(params.get('businesses') || '[]')); } catch(e){}
-
-  document.getElementById('token').innerText = 'TOKEN: ' + token;
-
-  const list = document.getElementById('list');
-  const resultDiv = document.getElementById('result');
-  
-  if (!token || businesses.length === 0) {
-    list.innerHTML = '<p class="err">No se encontraron negocios. ¿Diste permisos de Empresas y WhatsApp en el login?</p><a href="/">Volver</a>';
-  } else {
-    list.innerHTML = '';
-    businesses.forEach(b => {
-      const btn = document.createElement('button');
-      btn.innerHTML = `<b>${b.name}</b><br><small>${b.id}</small>`;
-      btn.onclick = async () => {
-        btn.innerText = 'Enviando invitación a onboarding@sellerchat.ai...';
-        btn.disabled = true;
-        try {
-          const r = await fetch(`/api/invite?business_id=${b.id}&token=${encodeURIComponent(token)}`);
-          const j = await r.json();
-          if (j.error || j.error_msg) {
-            resultDiv.innerHTML = '<p class="err">Error: ' + JSON.stringify(j, null, 2) + '</p>';
-          } else {
-            resultDiv.innerHTML = '<p class="ok">✅ Invitación enviada. Revisa business.facebook.com/requests y acepta con tu usuario admin. Respuesta: ' + JSON.stringify(j) + '</p>';
-          }
-        } catch(err) {
-          resultDiv.innerHTML = '<p class="err">Error de red: ' + err.message + '</p>';
-        }
-        btn.disabled = false;
-        btn.innerText = `Reintentar ${b.name}`;
-      };
-      list.appendChild(btn);
-    });
-    // Botón manual Kiamber
-    const manual = document.createElement('button');
-    manual.innerHTML = '<b>Kiamber (manual)</b><br><small>832691819931306</small>';
-    manual.style.border = '2px dashed #1877F2';
-    manual.onclick = async () => {
-      manual.innerText = 'Enviando...';
-      const r = await fetch(`/api/invite?business_id=832691819931306&token=${encodeURIComponent(token)}`);
-      const j = await r.json();
-      resultDiv.innerHTML = '<pre>' + JSON.stringify(j, null, 2) + '</pre>';
-      manual.innerText = 'Reintentar Kiamber manual';
-    };
-    list.appendChild(manual);
-  }
-</script>
-</body>
-</html>
+<p>Esta pagina ya no se usa. Usa index.html con config_id 1889600718898450</p>
+<a href="/">Volver</a>
+</body></html>
