@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
-      config_id: '1889600718898450',
+      config_id: '1725229885625909',
       access_token: tokenData.access_token,
       businesses: bizData.data || [],
       wabas: wabaData.data || [],
