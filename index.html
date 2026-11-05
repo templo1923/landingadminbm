@@ -1,11 +1,52 @@
 <!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><title>WhatKiamber - Conectar WhatsApp</title></head>
-<body style="font-family:sans-serif;max-width:720px;margin:40px auto">
-<h1>WhatKiamber - Conectar WhatsApp (freerangenotify adaptado)</h1>
-<p>App: 811281598468466 | Config: 1725229885625909 | BM: cositas 215054423376570 Verificado</p>
-<button id="connect" style="padding:12px 20px;background:#25D366;color:white;border:none;border-radius:8px;cursor:pointer">Conectar WhatsApp con Embedded Signup</button>
-<pre id="out" style="background:#f5f5f5;padding:12px;margin-top:20px"></pre>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WhatKiamber - WhatsApp Onboarding</title>
+<style>
+body{font-family:Inter,system-ui,sans-serif;background:#f8fafc;margin:0}
+.container{max-width:900px;margin:0 auto;padding:40px 20px}
+.card{background:white;border-radius:16px;padding:32px;box-shadow:0 4px 20px rgba(0,0,0,.06);margin-top:20px}
+.btn{background:#25D366;color:white;border:none;padding:14px 24px;border-radius:10px;font-weight:600;cursor:pointer;font-size:16px}
+.btn:hover{background:#128C7E}
+.badge{display:inline-block;background:#e0f2fe;color:#0369a1;padding:4px 10px;border-radius:999px;font-size:12px;margin-right:6px}
+pre{background:#0f172a;color:#e2e8f0;padding:16px;border-radius:10px;overflow:auto;max-height:300px}
+a{color:#0369a1}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>WhatKiamber – WhatsApp Business Onboarding</h1>
+<p>App <strong>811281598468466</strong> | Config <strong>1725229885625909</strong> | BM Verificado <strong>COSITAS DELICIOSAS S.A.S 215054423376570</strong></p>
+<div>
+<span class="badge">business_management</span>
+<span class="badge">whatsapp_business_management</span>
+<span class="badge">whatsapp_business_messaging</span>
+<span class="badge">60 days token</span>
+<span class="badge">v20.0</span>
+</div>
+<div class="card">
+<h2>1. Conectar cuenta</h2>
+<p>Usa Embedded Signup v5 (YCloud 2026-09-16). Selecciona BM Kiamber 832691819931306, Eplay 701991366325150 o DCaireacondicionado. El BM cositas está bloqueado porque own app – normal.</p>
+<button class="btn" id="connect">Conectar WhatsApp con Facebook</button>
+<pre id="out">Esperando login...</pre>
+</div>
+<div class="card">
+<h2>2. Datos del negocio</h2>
+<p>Después de conectar, verás WABAs reales: Kiamber - cositasdeliciosasoficial y Kiamber Corp Tl +1 205-751-0826</p>
+<ul>
+<li>WABA: 1146913454580655</li>
+<li>System User: 122096076987112136 / 61583364092265</li>
+<li>Email onboarding: onboarding@sellerchat.ai</li>
+<li>Webhook: https://prooveedordetecnologyia.vercel.app/api/webhook</li>
+</ul>
+</div>
+<div class="card">
+<p><a href="/privacy">Privacy Policy</a> | <a href="/terms">Terms</a> | <a href="/data-deletion">Data Deletion</a></p>
+<p style="font-size:12px;color:#64748b">Domain: prooveedordetecnologyia.vercel.app | App Mode: Live | Based on freerangenotify (passed review 2026-04-09) + YCloud Docs 2026-09-16 + AIPaths Tech Provider video _BGEwS3h-M8</p>
+</div>
+</div>
 <div id="fb-root"></div>
 <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
 <script>
@@ -28,9 +69,8 @@ function launch(){
 document.getElementById('connect').onclick=launch;
 window.addEventListener('message',(event)=>{
  if(event.origin!=='https://www.facebook.com' && event.origin!=='https://web.facebook.com') return;
- try{ const d=JSON.parse(event.data); if(d.type==='WA_EMBEDDED_SIGNUP'){ document.getElementById('out').textContent=JSON.stringify(d,null,2); } }catch{}
+ try{const d=JSON.parse(event.data); if(d.type==='WA_EMBEDDED_SIGNUP'){document.getElementById('out').textContent=JSON.stringify(d,null,2);} }catch{}
 });
 </script>
-<p><a href="/privacy">Privacy</a> | <a href="/terms">Terms</a> | <a href="/data-deletion">Data Deletion</a></p>
 </body>
 </html>
