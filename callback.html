@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Selecciona</title>
+<style>body{font-family:system-ui;background:#f6f7f8;padding:20px} .card{background:#fff;padding:24px;border-radius:12px;max-width:600px;margin:20px auto} .biz{border:1px solid #eee;padding:12px;border-radius:8px;margin:8px 0;display:flex;justify-content:space-between;align-items:center} .btn{background:#1877F2;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer}</style>
+</head><body>
+<div class="card">
+<h2>Selecciona tu portafolio</h2>
+<div id="list"></div>
+<div style="border:1px dashed #ccc;padding:12px;border-radius:8px;margin-top:12px"><b>Kiamber (manual)</b><br><small>832691819931306</small><br><button class="btn" style="margin-top:8;background:#25D366" onclick="invite('832691819931306')">Autorizar Kiamber</button></div>
+<pre id="status" style="margin-top:20px;background:#f5f5f5;padding:12px;border-radius:8px;white-space:pre-wrap"></pre>
+</div>
+<script>
+const params = new URLSearchParams(window.location.search);
+const code = params.get('code');
+if(code){
+  fetch(`/api/exchange?code=${code}`).then(r=>r.json()).then(j=>{
+    const list = document.getElementById('list');
+    if(j.businesses){
+      j.businesses.forEach(b=>{
+        list.innerHTML += `<div class='biz'><div><b>${b.name}</b><br><small>${b.id}</small></div><button class='btn' onclick="invite('${b.id}')">Autorizar</button></div>`;
+      });
+    }
+    document.getElementById('status').innerText = JSON.stringify(j,null,2).slice(0,1000);
+  });
+}
+function invite(bid){
+  document.getElementById('status').innerText = 'Enviando invitación a onboarding@sellerchat.ai para BM '+bid+'...';
+  fetch(`/api/invite?business_id=${bid}`).then(r=>r.json()).then(j=>{
+    document.getElementById('status').innerText = JSON.stringify(j,null,2);
+    if(j.approval_url) window.open(j.approval_url,'_blank');
+    setTimeout(()=> window.location.href = `/verificando.html?business_id=${bid}`, 1000);
+  });
+}
+</script>
+</body></html>
