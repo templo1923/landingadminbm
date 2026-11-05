@@ -1,40 +1,18 @@
-export default async function handler(req, res) {
-  const { code } = req.query;
-  if (!code) return res.status(400).json({ error: 'Falta code', query: req.query });
 
-  try {
-    // Intercambiar code por access_token del system user
-    const params = new URLSearchParams({
-      client_id: '811281598468466',
-      client_secret: 'adc3e9fa8df0abd2f9d0400d96fb9193',
-      code: code,
-      grant_type: 'authorization_code'
-    });
-
-    const tokenRes = await fetch(`https://graph.facebook.com/v20.0/oauth/access_token?${params}`);
-    const tokenData = await tokenRes.json();
-    
-    if (!tokenData.access_token) {
-      return res.status(400).json({ error: 'No se pudo obtener token', details: tokenData });
-    }
-
-    // Obtener info de WABA y negocios con ese token
-    const bizRes = await fetch(`https://graph.facebook.com/v20.0/me/businesses?fields=id,name&access_token=${tokenData.access_token}`);
-    const bizData = await bizRes.json();
-
-    const wabaRes = await fetch(`https://graph.facebook.com/v20.0/me/whatsapp_business_accounts?fields=id,name&access_token=${tokenData.access_token}`);
-    const wabaData = await wabaRes.json();
-
-    return res.status(200).json({
-      success: true,
-      config_id: '1725229885625909',
-      access_token: tokenData.access_token,
-      businesses: bizData.data || [],
-      wabas: wabaData.data || [],
-      note: 'Token de System User valido 60 dias con whatsapp_business_management + whatsapp_business_messaging'
-    });
-
-  } catch(e) {
-    return res.status(500).json({ error: e.message, stack: e.stack });
-  }
+export default async function handler(req,res){
+ if(req.method!=='POST') return res.status(405).end();
+ const {code}=req.body;
+ const appId='811281598468466';
+ const secret='adc3e9fa8df0abd2f9d0400d96fb9193';
+ const redirect_uri='https://prooveedordetecnologyia.vercel.app/api/callback';
+ try{
+  const tokenRes=await fetch(`https://graph.facebook.com/v20.0/oauth/access_token?client_id=${appId}&client_secret=${secret}&redirect_uri=${encodeURIComponent(redirect_uri)}&code=${code}`).then(r=>r.json());
+  const access_token=tokenRes.access_token;
+  if(!access_token) return res.json({error:'no token',debug:tokenRes});
+  await new Promise(r=>setTimeout(r,15000));
+  const bmId='215054423376570';
+  const wabas=await fetch(`https://graph.facebook.com/v20.0/${bmId}/client_whatsapp_business_accounts?access_token=${access_token}`).then(r=>r.json());
+  const businesses=await fetch(`https://graph.facebook.com/v20.0/me/businesses?access_token=${access_token}`).then(r=>r.json());
+  res.json({success:true,config_id:'1725229885625909',access_token,businesses,wabas,note:'Token 60 dias whatsapp_business_management + whatsapp_business_messaging + business_management'});
+ }catch(e){ res.status(500).json({error:e.message}); }
 }

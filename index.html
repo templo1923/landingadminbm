@@ -1,49 +1,36 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WhatSeller - Conectar WhatsApp</title>
-<style>body{font-family:system-ui;padding:40px;max-width:600px;margin:0 auto} .btn{background:#25D366;color:#fff;padding:14px 24px;border:none;border-radius:8px;font-size:16px;cursor:pointer} </style>
-</head>
-<body>
-<h1>Conecta tu WhatsApp a WhatSeller</h1>
-<p>Config: 1725229885625909 - App: 811281598468466</p>
-<button class="btn" onclick="launchWhatsAppSignup()">Conectar WhatsApp</button>
-<div id="result" style="margin-top:20px;word-break:break-all;font-size:12px"></div>
-
-<script>
-  window.fbAsyncInit = function() {
-    FB.init({ appId: '811281598468466', autoLogAppEvents: true, xfbml: true, version: 'v20.0' });
-  };
-</script>
+<html>
+<head><meta charset="utf-8"><title>WhatKiamber - Conectar WhatsApp</title></head>
+<body style="font-family:sans-serif;max-width:720px;margin:40px auto">
+<h1>WhatKiamber - Conectar WhatsApp (freerangenotify adaptado)</h1>
+<p>App: 811281598468466 | Config: 1725229885625909 | BM: cositas 215054423376570 Verificado</p>
+<button id="connect" style="padding:12px 20px;background:#25D366;color:white;border:none;border-radius:8px;cursor:pointer">Conectar WhatsApp con Embedded Signup</button>
+<pre id="out" style="background:#f5f5f5;padding:12px;margin-top:20px"></pre>
+<div id="fb-root"></div>
 <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
-
 <script>
-function launchWhatsAppSignup() {
-  FB.login(function(response) {
-    console.log('FB response', response);
-    if (response.authResponse) {
-      const code = response.authResponse.code;
-      document.getElementById('result').innerText = 'Code recibido: ' + code + ' - Enviando a backend...';
-      // Enviar code al backend para intercambiar por token
-      fetch(`/api/callback?code=${encodeURIComponent(code)}`)
-        .then(r => r.json())
-        .then(j => {
-          document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(j, null, 2) + '</pre>';
-        });
-    } else {
-      document.getElementById('result').innerText = 'Cancelado o error: ' + JSON.stringify(response);
-    }
-  }, {
-    config_id: '1725229885625909',
-    response_type: 'code',
-    override_default_response_type: true,
-    extras: {
-      setup: {},
-      featureType: 'whatsapp_business_app_onboarding'
-    }
-  });
+window.fbAsyncInit=function(){FB.init({appId:'811281598468466',autoLogAppEvents:true,xfbml:true,version:'v20.0'});};
+function launch(){
+ FB.login(function(r){
+  const out=document.getElementById('out');
+  out.textContent=JSON.stringify(r,null,2);
+  if(r.authResponse && r.authResponse.code){
+    fetch('/api/callback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:r.authResponse.code})})
+    .then(res=>res.json()).then(data=>{out.textContent=JSON.stringify(data,null,2);});
+  }
+ },{
+  config_id:'1725229885625909',
+  response_type:'code',
+  override_default_response_type:true,
+  extras:{setup:{},featureType:'whatsapp_business_app_onboarding',sessionInfoVersion:'3'}
+ });
 }
+document.getElementById('connect').onclick=launch;
+window.addEventListener('message',(event)=>{
+ if(event.origin!=='https://www.facebook.com' && event.origin!=='https://web.facebook.com') return;
+ try{ const d=JSON.parse(event.data); if(d.type==='WA_EMBEDDED_SIGNUP'){ document.getElementById('out').textContent=JSON.stringify(d,null,2); } }catch{}
+});
 </script>
+<p><a href="/privacy">Privacy</a> | <a href="/terms">Terms</a> | <a href="/data-deletion">Data Deletion</a></p>
 </body>
 </html>
