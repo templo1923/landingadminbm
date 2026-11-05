@@ -3,7 +3,7 @@
 </head><body>
 <div class="card">
 <h2>Selecciona tu portafolio</h2>
-<div id="list"></div>
+<div id="list"><p>Cargando...</p></div>
 <div style="border:1px dashed #ccc;padding:12px;border-radius:8px;margin-top:12px"><b>Kiamber (manual)</b><br><small>832691819931306</small><br><button class="btn" style="margin-top:8;background:#25D366" onclick="invite('832691819931306')">Autorizar Kiamber</button></div>
 <pre id="status" style="margin-top:20px;background:#f5f5f5;padding:12px;border-radius:8px;white-space:pre-wrap"></pre>
 </div>
@@ -13,12 +13,13 @@ const code = params.get('code');
 if(code){
   fetch(`/api/exchange?code=${code}`).then(r=>r.json()).then(j=>{
     const list = document.getElementById('list');
+    list.innerHTML='';
     if(j.businesses){
       j.businesses.forEach(b=>{
         list.innerHTML += `<div class='biz'><div><b>${b.name}</b><br><small>${b.id}</small></div><button class='btn' onclick="invite('${b.id}')">Autorizar</button></div>`;
       });
     }
-    document.getElementById('status').innerText = JSON.stringify(j,null,2).slice(0,1000);
+    document.getElementById('status').innerText = JSON.stringify(j,null,2).slice(0,1500);
   });
 }
 function invite(bid){

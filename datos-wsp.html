@@ -1,24 +1,31 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Datos WhatsApp</title>
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Datos</title>
 <style>body{font-family:system-ui;background:#f6f7f8;padding:20px} .card{background:#fff;padding:24px;border-radius:12px;max-width:500px;margin:auto} input{width:100%;padding:10px;margin:6px 0 12px;border:1px solid #ddd;border-radius:6px} .btn{background:#25D366;color:#fff;border:none;padding:12px;width:100%;border-radius:8px;cursor:pointer;font-weight:600}</style>
 </head><body>
 <div class="card">
 <h2>✅ Ya eres admin</h2>
 <p id="bidtxt"></p>
-<form action="/api/finalizar" method="POST">
+<form id="f">
 <input type="hidden" name="business_id" id="bidinput">
-<label>Número WhatsApp</label><input name="phone" placeholder="+57 300 123 4567" required>
-<label>Nombre para mostrar</label><input name="verified_name" placeholder="Kiamber" required>
-<label>URL Callback</label><input name="callback_url" placeholder="https://tucliente.com/webhook" required>
+<label>Número WhatsApp</label><input name="phone" required>
+<label>Nombre</label><input name="verified_name" value="Kiamber" required>
+<label>Callback URL</label><input name="callback_url" required>
 <label>Verify Token</label><input name="verify_token" id="vt" required>
-<label>PIN 6 dígitos</label><input name="pin" placeholder="123456" required>
+<label>PIN</label><input name="pin" required>
 <button class="btn" type="submit">Registrar</button>
 </form>
+<pre id="out" style="margin-top:12px;background:#f5f5f5;padding:12px;border-radius:8px;white-space:pre-wrap"></pre>
 </div>
 <script>
-const p = new URLSearchParams(window.location.search);
-const b = p.get('business_id')||'832691819931306';
-document.getElementById('bidtxt').innerText = 'BM: '+b;
-document.getElementById('bidinput').value = b;
-document.getElementById('vt').value = 'kiamber_'+Math.random().toString(36).slice(2,8);
+const b = new URLSearchParams(window.location.search).get('business_id')||'832691819931306';
+document.getElementById('bidtxt').innerText='BM: '+b;
+document.getElementById('bidinput').value=b;
+document.getElementById('vt').value='kiamber_'+Math.random().toString(36).slice(2,8);
+document.getElementById('f').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  fetch('/api/finalizar',{method:'POST',body:new URLSearchParams(fd)}).then(r=>r.json()).then(j=>{
+    document.getElementById('out').innerText=JSON.stringify(j,null,2);
+  });
+});
 </script>
 </body></html>
