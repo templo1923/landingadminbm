@@ -14,6 +14,9 @@ td{padding:12px 10px;border-bottom:1px solid color-mix(in srgb,var(--muted) 30%,
 .b{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.82rem;font-weight:600}.ok{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent)}.warn{background:#f2b13d33;color:#9a6a00}.bad2{background:#e5484d22;color:var(--bad)}.n{background:#8883;color:var(--muted)}
 .tpl{padding:4px 10px 14px;color:var(--muted);font-size:.9rem}.tpl div{padding:3px 0}.act{list-style:none;padding:0;margin:8px 0 0;font-size:.9rem;color:var(--muted)}.act li{padding:4px 0}
 .empty{padding:28px 0;color:var(--muted)}
+.card{border-top:1px solid var(--muted);margin-top:32px;padding-top:22px}.card h2{margin:0 0 6px}.card p{color:var(--muted)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.box{border:1px solid color-mix(in srgb,var(--muted) 45%,transparent);border-radius:10px;padding:16px}.box h3{margin:0 0 12px}.box label{display:block;color:var(--muted);font-size:.85rem;margin:9px 0 5px}.box input,.box select,.box textarea{font:inherit;width:100%;padding:10px;border:1px solid var(--muted);border-radius:8px;background:transparent;color:var(--ink)}.box textarea{min-height:90px;resize:vertical}.mini{font-size:.82rem;color:var(--muted)}.idline{font-family:ui-monospace,monospace;font-size:.8rem;overflow-wrap:anywhere;margin:5px 0}.statusline{margin-top:10px}.checklist{padding-left:20px;color:var(--muted);line-height:1.9}.checklist b{color:var(--ink)}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
 </style></head>
 <body><main class="wrap panel">
 <div class="top"><p class="brand"><a href="/" style="text-decoration:none">WhatKiamber</a></p>
@@ -36,6 +39,10 @@ td{padding:12px 10px;border-bottom:1px solid color-mix(in srgb,var(--muted) 30%,
   <div class="tablewrap"><table><thead><tr><th>Número</th><th>Nombre</th><th>Estado</th><th>Calidad</th><th>Nivel</th><th>Token vence</th></tr></thead><tbody id="rows"></tbody></table></div>
   <div id="empty" class="empty" hidden>Aún no tienes números conectados. Conecta el primero con el botón de arriba.</div>
   <h2>Actividad reciente</h2><ul class="act" id="act"></ul>
+  <section class="card"><h2>Identificadores y activos</h2><p class="mini">Metadatos operativos de cada conexión. Los tokens nunca se muestran.</p><div id="ids" class="box"></div></section>
+  <section class="card"><h2>Plantillas</h2><p class="mini">Crea una plantilla básica; Meta la revisa antes de aprobarla.</p><div class="grid2"><form id="templateForm" class="box"><label>Conexión<select id="templateConnection" required></select></label><label>Nombre<input id="templateName" pattern="[a-z0-9_]+" placeholder="pedido_confirmado" required></label><label>Idioma<input id="templateLanguage" value="es_CO" required></label><label>Categoría<select id="templateCategory"><option>UTILITY</option><option>MARKETING</option><option>AUTHENTICATION</option></select></label><label>Texto del cuerpo<textarea id="templateBody" placeholder="Hola {{1}}, tu pedido fue confirmado." required></textarea></label><button class="btn" type="submit">Crear plantilla</button></form><div class="box"><h3>Plantillas sincronizadas</h3><div id="templateList" class="mini">Todavía no hay plantillas.</div></div></div></section>
+  <section class="card"><h2>Mensaje de prueba</h2><p class="mini">Usa solo un destinatario que haya dado consentimiento y que Meta permita para pruebas.</p><form id="messageForm" class="box"><label>Conexión<select id="messageConnection" required></select></label><label>Número destinatario<input id="messageTo" inputmode="tel" placeholder="573001234567" required></label><label>Mensaje<textarea id="messageText" placeholder="Mensaje de prueba desde el panel" required></textarea></label><button class="btn" type="submit">Enviar mensaje de prueba</button></form></section>
+  <section class="card"><h2>Webhooks y revisión</h2><p class="mini">Endpoint global: <code>/api/webhook</code></p><button class="ghost" id="checkWebhooks">Comprobar suscripción</button><div id="webhookStatus" class="statusline mini"></div><ul class="checklist"><li><b>Conexión:</b> Embedded Signup devuelve IDs y token.</li><li><b>Gestión:</b> listar y crear plantillas desde el panel.</li><li><b>Mensajería:</b> enviar mensaje de prueba autorizado.</li><li><b>Webhooks:</b> recibir y verificar firma HMAC.</li><li><b>Revisión:</b> grabar estas acciones en una cuenta de prueba.</li></ul></section>
 </section>
 <footer><a href="/privacy">Privacidad</a><a href="/terms">Términos</a><a href="/data-deletion">Eliminar datos</a></footer>
 </main>
@@ -68,6 +75,10 @@ function render(){
   }).join('');
   document.querySelectorAll('tr.c').forEach(r=>r.onclick=()=>{open=open===r.dataset.id?null:r.dataset.id;render()});
   $('act').innerHTML=DATA.activity.length?DATA.activity.map(a=>`<li>${fmt(a.at)} · ${esc(ACT[a.action]||a.action)}</li>`).join(''):'<li>Sin actividad todavía.</li>';
+  const options=c.map(x=>`<option value="${esc(x.id)}">${esc(x.display_phone||x.waba_id)}</option>`).join('');
+  $('templateConnection').innerHTML=options; $('messageConnection').innerHTML=options;
+  $('ids').innerHTML=c.length?c.map(x=>`<div class="box"><b>${esc(x.display_phone||x.verified_name||'Conexión')}</b><div class="idline">business_id: ${esc(x.business_id)}</div><div class="idline">waba_id: ${esc(x.waba_id)}</div><div class="idline">phone_number_id: ${esc(x.phone_number_id)}</div><div class="idline">connection_id: ${esc(x.id)}</div><div class="idline">estado: ${esc(x.status)} · calidad: ${esc(x.quality)}</div></div>`).join(''):'<p class="mini">Conecta un número para ver sus identificadores.</p>';
+  $('templateList').innerHTML=DATA.templates.length?DATA.templates.map(t=>`<div class="idline">${esc(t.name)} · ${esc(t.language)} · ${esc(t.category)} · ${esc(t.status)}</div>`).join(''):'Todavía no hay plantillas.';
 }
 let busy=false;
 async function load(){ try{ DATA=await api('/api/connections'); render(); }catch(e){ say(e.message,'bad'); } }
@@ -85,6 +96,9 @@ $('up').onclick=async()=>{ if(!$('f').reportValidity()) return; $('amsg').textCo
 $('out').onclick=()=>sb.auth.signOut();
 $('sync').onclick=async()=>{ say('Sincronizando…'); try{ DATA=await api('/api/connections',{method:'POST',body:JSON.stringify({action:'sync'})}); render(); say('Datos actualizados.','good'); }catch(e){ say(e.message,'bad'); } };
 $('reload').onclick=async()=>{ say('Actualizando…'); await load(); say(''); };
+$('templateForm').onsubmit=async e=>{e.preventDefault();say('Creando plantilla…');try{await api('/api/templates',{method:'POST',body:JSON.stringify({connection_id:$('templateConnection').value,name:$('templateName').value.trim(),language:$('templateLanguage').value.trim(),category:$('templateCategory').value,body:$('templateBody').value.trim()})});$('templateForm').reset();await load();say('Plantilla enviada a revisión de Meta.','good')}catch(err){say(err.message,'bad')}};
+$('messageForm').onsubmit=async e=>{e.preventDefault();say('Enviando mensaje…');try{const r=await api('/api/message',{method:'POST',body:JSON.stringify({connection_id:$('messageConnection').value,to:$('messageTo').value,text:$('messageText').value})});say(`Mensaje aceptado por Meta: ${r.result?.messages?.[0]?.id||'ok'}`,'good')}catch(err){say(err.message,'bad')}};
+$('checkWebhooks').onclick=async()=>{say('Comprobando webhooks…');try{const r=await api('/api/webhook-status');$('webhookStatus').innerHTML=r.connections.length?r.connections.map(x=>`${esc(x.display_phone||x.waba_id)}: ${x.subscribed?'<span class="b ok">Suscrito</span>':'<span class="b bad2">Revisar</span>'}`).join('<br>'):'Sin conexiones';say('Estado de webhooks actualizado.','good')}catch(err){say(err.message,'bad')}};
 async function poll(prev){ // busca la conexión nueva hasta ~75 s (Meta tarda en compartir la cuenta)
   for(let i=0;i<15;i++){ await load(); if(DATA&&DATA.connections.length>prev) return true; say('Esperando a Meta… '+(i+1)+'/15'); await new Promise(r=>setTimeout(r,5000)); }
   return false; }
