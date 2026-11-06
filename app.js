@@ -2,8 +2,11 @@
 let CFG, sb, SESSION = null, signup = {};
 
 window.addEventListener('message', ev => {
-  if (!/^https:\/\/(www|web)\.facebook\.com$/.test(ev.origin)) return;
-  try { const d = JSON.parse(ev.data); if (d.type === 'WA_EMBEDDED_SIGNUP' && d.event === 'FINISH') signup = d.data || {}; } catch (_) {}
+  if (!ev.origin.endsWith('facebook.com')) return;
+  try {
+    const d = typeof ev.data === 'string' ? JSON.parse(ev.data) : ev.data;
+    if (d && d.type === 'WA_EMBEDDED_SIGNUP') signup = d.data || {};
+  } catch (_) {}
 });
 
 async function boot() {
@@ -22,6 +25,7 @@ async function boot() {
 // Debe llamarse directamente desde un click (sin await antes) para que el popup no se bloquee.
 function connectWA(done) {
   if (!SESSION) { location.href = '/panel'; return; }
+  signup = {};
   const token = SESSION.access_token;
   FB.login(resp => {
     const code = resp.authResponse && resp.authResponse.code;
@@ -32,7 +36,7 @@ function connectWA(done) {
       try {
         const r = await fetch('/api/callback', { method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-          body: JSON.stringify({ code, waba_id: signup.waba_id, phone_number_id: signup.phone_number_id }) });
+          body: JSON.stringify({ code, waba_id: signup.waba_id, phone_number_id: signup.phone_number_id, business_id: signup.business_id }) });
         done(await r.json());
       } catch (_) { done({ ok: false }); }
     };

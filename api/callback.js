@@ -1,11 +1,9 @@
 const { db, G, graph, enc, authUser, ensureOrg, audit, syncWaba } = require('./_lib');
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
   const user = await authUser(req);
   if (!user) return res.status(401).json({ ok: false, error: 'Inicia sesión primero' });
-  const { code, waba_id } = req.body || {};
+  const { code, waba_id, phone_number_id, business_id } = req.body || {};
   if (!code) return res.status(400).json({ ok: false, error: 'Missing code' });
 
   try {
@@ -15,15 +13,13 @@ module.exports = async (req, res) => {
     const short = await graph(`${G('oauth/access_token')}?` + new URLSearchParams({
       client_id: process.env.APP_ID, client_secret: process.env.APP_SECRET, code }));
 
-    // 2) Token de larga duración (~60 días)
-    const long = await graph(`${G('oauth/access_token')}?` + new URLSearchParams({
-      grant_type: 'fb_exchange_token', client_id: process.env.APP_ID,
-      client_secret: process.env.APP_SECRET, fb_exchange_token: short.access_token }));
-    const token = long.access_token;
-    const expires = new Date(Date.now() + (long.expires_in || 5184000) * 1000).toISOString();
+    // Embedded Signup devuelve aquí el Business Integration System User token.
+    // No se debe convertir a un token de usuario largo con fb_exchange_token.
+    const token = short.access_token;
+    const expires = short.expires_in ? new Date(Date.now() + short.expires_in * 1000).toISOString() : null;
 
-    // 3) Esperar 15 s a que Meta comparta la WABA con tu BM
-    await sleep(15000);
+    // El waba_id devuelto por Embedded Signup es la fuente primaria.
+    // El endpoint de client WABAs queda solo como reconciliación secundaria.
 
     // 4) WABAs del BM verificado (+ la que reportó el evento de Embedded Signup)
     const ids = new Map();
@@ -46,7 +42,7 @@ module.exports = async (req, res) => {
     // 5) Guardar (token cifrado), suscribir webhooks y sincronizar
     for (const [id, name] of ids) {
       const { data: conn, error } = await db.from('connections').upsert(
-        { org_id: orgId, waba_id: id, name, token_cipher: enc(token), token_expires_at: expires },
+        { org_id: orgId, waba_id: id, name, phone_number_id: id === waba_id ? phone_number_id || null : null, token_cipher: enc(token), token_expires_at: expires },
         { onConflict: 'waba_id' }).select().single();
       if (error) throw error;
       await graph(G(`${id}/subscribed_apps`), { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
