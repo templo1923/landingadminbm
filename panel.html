@@ -34,8 +34,9 @@ td{padding:12px 10px;border-bottom:1px solid color-mix(in srgb,var(--muted) 30%,
 <section id="dash" hidden>
   <h1>Tus números</h1>
   <div class="stats"><div><b id="s1">0</b><span>Números conectados</span></div><div><b id="s2">0</b><span>Calidad verde</span></div><div><b id="s3">0</b><span>Plantillas aprobadas</span></div></div>
-  <div class="row"><button class="btn" id="connect">Conectar WhatsApp con Facebook</button><button class="ghost" id="sync">Sincronizar</button><button class="ghost" id="reload">Actualizar</button></div>
+  <div class="row"><button class="btn" id="connect">Conectar WhatsApp con Facebook</button><button class="ghost" id="sync">Sincronizar salud</button><button class="ghost" id="reload">Actualizar</button><button class="ghost" id="exportCsv">Exportar CSV</button></div>
   <p id="status" role="status"></p>
+  <div class="row"><input class="field" id="connSearch" placeholder="Buscar número o WABA…" style="max-width:300px;margin:0"><select class="field" id="connFilter" style="max-width:170px;margin:0"><option value="all">Todos los estados</option><option value="live">Activos</option><option value="pending">Pendientes</option><option value="error">Con atención</option></select></div>
   <div class="tablewrap"><table><thead><tr><th>Número</th><th>Nombre</th><th>Estado</th><th>Calidad</th><th>Nivel</th><th>Token vence</th></tr></thead><tbody id="rows"></tbody></table></div>
   <div id="empty" class="empty" hidden>Aún no tienes números conectados. Conecta el primero con el botón de arriba.</div>
   <h2>Actividad reciente</h2><ul class="act" id="act"></ul>
@@ -68,7 +69,9 @@ function render(){
   $('s2').textContent=c.filter(x=>x.quality==='GREEN').length;
   $('s3').textContent=DATA.templates.filter(t=>t.status==='APPROVED').length;
   $('empty').hidden=c.length>0;
-  $('rows').innerHTML=c.map(x=>{
+  const q=($('connSearch').value||'').toLowerCase().trim(), filter=$('connFilter').value;
+  const visible=c.filter(x=>(filter==='all'||x.status===filter)&&(!q||[x.display_phone,x.waba_id,x.verified_name,x.phone_number_id].some(v=>String(v||'').toLowerCase().includes(q))));
+  $('rows').innerHTML=visible.map(x=>{
     const t=DATA.templates.filter(t=>t.connection_id===x.id);
     return `<tr class="c" data-id="${esc(x.id)}"><td>${esc(x.display_phone)}</td><td>${esc(x.verified_name||x.name)}</td><td>${badge(ST,x.status)}</td><td>${badge(QL,x.quality)}</td><td>${esc((x.tier||'').replace('TIER_',''))}</td><td>${fmt(x.token_expires_at)}</td></tr>`+
     (open===x.id?`<tr><td colspan="6" class="tpl"><b>Plantillas (${t.length})</b>${t.length?t.map(p=>`<div>${esc(p.name)} · ${esc(p.language)} · ${esc(p.category)} · ${esc(p.status)}</div>`).join(''):'<div>Sin plantillas todavía.</div>'}</td></tr>`:'');
@@ -77,7 +80,7 @@ function render(){
   $('act').innerHTML=DATA.activity.length?DATA.activity.map(a=>`<li>${fmt(a.at)} · ${esc(ACT[a.action]||a.action)}</li>`).join(''):'<li>Sin actividad todavía.</li>';
   const options=c.map(x=>`<option value="${esc(x.id)}">${esc(x.display_phone||x.waba_id)}</option>`).join('');
   $('templateConnection').innerHTML=options; $('messageConnection').innerHTML=options;
-  $('ids').innerHTML=c.length?c.map(x=>`<div class="box"><b>${esc(x.display_phone||x.verified_name||'Conexión')}</b><div class="idline">business_id: ${esc(x.business_id)}</div><div class="idline">waba_id: ${esc(x.waba_id)}</div><div class="idline">phone_number_id: ${esc(x.phone_number_id)}</div><div class="idline">connection_id: ${esc(x.id)}</div><div class="idline">estado: ${esc(x.status)} · calidad: ${esc(x.quality)}</div></div>`).join(''):'<p class="mini">Conecta un número para ver sus identificadores.</p>';
+  $('ids').innerHTML=c.length?c.map(x=>`<div class="box"><b>${esc(x.display_phone||x.verified_name||'Conexión')}</b><div class="idline">business_id: ${esc(x.business_id)}</div><div class="idline">waba_id: ${esc(x.waba_id)}</div><div class="idline">phone_number_id: ${esc(x.phone_number_id)}</div><div class="idline">connection_id: ${esc(x.id)}</div><div class="idline">estado: ${esc(x.status)} · calidad: ${esc(x.quality)} · sincronizado: ${esc(fmt(x.synced_at))}</div></div>`).join(''):'<p class="mini">Conecta un número para ver sus identificadores.</p>';
   $('templateList').innerHTML=DATA.templates.length?DATA.templates.map(t=>`<div class="idline">${esc(t.name)} · ${esc(t.language)} · ${esc(t.category)} · ${esc(t.status)}</div>`).join(''):'Todavía no hay plantillas.';
 }
 let busy=false;
@@ -96,6 +99,8 @@ $('up').onclick=async()=>{ if(!$('f').reportValidity()) return; $('amsg').textCo
 $('out').onclick=()=>sb.auth.signOut();
 $('sync').onclick=async()=>{ say('Sincronizando…'); try{ DATA=await api('/api/connections',{method:'POST',body:JSON.stringify({action:'sync'})}); render(); say('Datos actualizados.','good'); }catch(e){ say(e.message,'bad'); } };
 $('reload').onclick=async()=>{ say('Actualizando…'); await load(); say(''); };
+$('connSearch').oninput=()=>{if(DATA)render()}; $('connFilter').onchange=()=>{if(DATA)render()};
+$('exportCsv').onclick=()=>{if(!DATA?.connections?.length)return say('No hay conexiones para exportar.','bad');const head=['connection_id','waba_id','phone_number_id','display_phone','status','quality','tier','synced_at'];const escCsv=v=>`"${String(v??'').replace(/"/g,'""')}"`;const csv=[head.join(','),...DATA.connections.map(x=>head.map(k=>escCsv(x[k])).join(','))].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='whatsapp-connections.csv';a.click();URL.revokeObjectURL(a.href)};
 $('templateForm').onsubmit=async e=>{e.preventDefault();say('Creando plantilla…');try{await api('/api/templates',{method:'POST',body:JSON.stringify({connection_id:$('templateConnection').value,name:$('templateName').value.trim(),language:$('templateLanguage').value.trim(),category:$('templateCategory').value,body:$('templateBody').value.trim()})});$('templateForm').reset();await load();say('Plantilla enviada a revisión de Meta.','good')}catch(err){say(err.message,'bad')}};
 $('messageForm').onsubmit=async e=>{e.preventDefault();say('Enviando mensaje…');try{const r=await api('/api/message',{method:'POST',body:JSON.stringify({connection_id:$('messageConnection').value,to:$('messageTo').value,text:$('messageText').value})});say(`Mensaje aceptado por Meta: ${r.result?.messages?.[0]?.id||'ok'}`,'good')}catch(err){say(err.message,'bad')}};
 $('checkWebhooks').onclick=async()=>{say('Comprobando webhooks…');try{const r=await api('/api/webhook-status');$('webhookStatus').innerHTML=r.connections.length?r.connections.map(x=>`${esc(x.display_phone||x.waba_id)}: ${x.subscribed?'<span class="b ok">Suscrito</span>':'<span class="b bad2">Revisar</span>'}`).join('<br>'):'Sin conexiones';say('Estado de webhooks actualizado.','good')}catch(err){say(err.message,'bad')}};
