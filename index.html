@@ -2,74 +2,43 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>WhatKiamber - WhatsApp Onboarding</title>
-<style>
-body{font-family:Inter,system-ui,sans-serif;background:#f8fafc;margin:0}
-.container{max-width:900px;margin:0 auto;padding:40px 20px}
-.card{background:white;border-radius:16px;padding:32px;box-shadow:0 4px 20px rgba(0,0,0,.06);margin-top:20px}
-.btn{background:#25D366;color:white;border:none;padding:14px 24px;border-radius:10px;font-weight:600;cursor:pointer;font-size:16px}
-.btn:hover{background:#128C7E}
-.badge{display:inline-block;background:#e0f2fe;color:#0369a1;padding:4px 10px;border-radius:999px;font-size:12px;margin-right:6px}
-pre{background:#0f172a;color:#e2e8f0;padding:16px;border-radius:10px;overflow:auto;max-height:300px}
-a{color:#0369a1}
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WhatKiamber — Conecta tu WhatsApp Business</title>
+<meta name="description" content="Conecta tu número de WhatsApp Business con WhatKiamber en minutos.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
-<div class="container">
-<h1>WhatKiamber – WhatsApp Business Onboarding</h1>
-<p>App <strong>811281598468466</strong> | Config <strong>1725229885625909</strong> | BM Verificado <strong>COSITAS DELICIOSAS S.A.S 215054423376570</strong></p>
-<div>
-<span class="badge">business_management</span>
-<span class="badge">whatsapp_business_management</span>
-<span class="badge">whatsapp_business_messaging</span>
-<span class="badge">60 days token</span>
-<span class="badge">v20.0</span>
-</div>
-<div class="card">
-<h2>1. Conectar cuenta</h2>
-<p>Usa Embedded Signup v5 (YCloud 2026-09-16). Selecciona BM Kiamber 832691819931306, Eplay 701991366325150 o DCaireacondicionado. El BM cositas está bloqueado porque own app – normal.</p>
-<button class="btn" id="connect">Conectar WhatsApp con Facebook</button>
-<pre id="out">Esperando login...</pre>
-</div>
-<div class="card">
-<h2>2. Datos del negocio</h2>
-<p>Después de conectar, verás WABAs reales: Kiamber - cositasdeliciosasoficial y Kiamber Corp Tl +1 205-751-0826</p>
-<ul>
-<li>WABA: 1146913454580655</li>
-<li>System User: 122096076987112136 / 61583364092265</li>
-<li>Email onboarding: onboarding@sellerchat.ai</li>
-<li>Webhook: https://prooveedordetecnologyia.vercel.app/api/webhook</li>
-</ul>
-</div>
-<div class="card">
-<p><a href="/privacy">Privacy Policy</a> | <a href="/terms">Terms</a> | <a href="/data-deletion">Data Deletion</a></p>
-<p style="font-size:12px;color:#64748b">Domain: prooveedordetecnologyia.vercel.app | App Mode: Live | Based on freerangenotify (passed review 2026-04-09) + YCloud Docs 2026-09-16 + AIPaths Tech Provider video _BGEwS3h-M8</p>
-</div>
-</div>
-<div id="fb-root"></div>
-<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js"></script>
+<main class="wrap">
+  <p class="brand">WhatKiamber</p>
+  <h1 data-i="h">Atiende a tus clientes por WhatsApp, sin cambiar de número.</h1>
+  <p class="lead" data-i="l">Conecta tu cuenta de WhatsApp Business en un par de minutos. Tú autorizas, nosotros nos encargamos del resto.</p>
+  <button id="connect" class="btn" data-i="b">Conectar WhatsApp con Facebook</button>
+  <p><a id="panel" href="/panel"></a></p>
+  <p id="status" role="status" aria-live="polite"></p>
+  <p class="small" data-i="n">Solo pedimos los permisos necesarios para administrar y enviar mensajes desde tu cuenta de WhatsApp Business.</p>
+  <footer><a href="/privacy">Privacidad / Privacy</a><a href="/terms">Términos / Terms</a><a href="/data-deletion">Eliminar datos / Data deletion</a></footer>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/app.js"></script>
 <script>
-window.fbAsyncInit=function(){FB.init({appId:'811281598468466',autoLogAppEvents:true,xfbml:true,version:'v20.0'});};
-function launch(){
- FB.login(function(r){
-  const out=document.getElementById('out');
-  out.textContent=JSON.stringify(r,null,2);
-  if(r.authResponse && r.authResponse.code){
-    fetch('/api/callback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:r.authResponse.code})})
-    .then(res=>res.json()).then(data=>{out.textContent=JSON.stringify(data,null,2);});
-  }
- },{
-  config_id:'1725229885625909',
-  response_type:'code',
-  override_default_response_type:true,
-  extras:{setup:{},featureType:'whatsapp_business_app_onboarding',sessionInfoVersion:'3'}
- });
-}
-document.getElementById('connect').onclick=launch;
-window.addEventListener('message',(event)=>{
- if(event.origin!=='https://www.facebook.com' && event.origin!=='https://web.facebook.com') return;
- try{const d=JSON.parse(event.data); if(d.type==='WA_EMBEDDED_SIGNUP'){document.getElementById('out').textContent=JSON.stringify(d,null,2);} }catch{}
+const T={es:{h:"Atiende a tus clientes por WhatsApp, sin cambiar de número.",l:"Conecta tu cuenta de WhatsApp Business en un par de minutos. Tú autorizas, nosotros nos encargamos del resto.",b:"Conectar WhatsApp con Facebook",n:"Solo pedimos los permisos necesarios para administrar y enviar mensajes desde tu cuenta de WhatsApp Business.",w:"Conectando tu cuenta… esto toma unos segundos.",ok:"¡Listo! Tu WhatsApp quedó conectado. Míralo en tu panel.",pend:"Tu cuenta se está activando. Vuelve a intentarlo en un minuto.",err:"No pudimos completar la conexión. Inténtalo de nuevo.",cancel:"Cancelaste el proceso. Puedes reintentar cuando quieras.",panel:"Entrar a mi panel"},
+en:{h:"Serve your customers on WhatsApp, keeping your number.",l:"Connect your WhatsApp Business account in a couple of minutes. You authorize, we handle the rest.",b:"Connect WhatsApp with Facebook",n:"We only request the permissions needed to manage and send messages from your WhatsApp Business account.",w:"Connecting your account… this takes a few seconds.",ok:"Done! Your WhatsApp is connected. See it in your dashboard.",pend:"Your account is being activated. Please try again in a minute.",err:"We couldn't complete the connection. Please try again.",cancel:"You cancelled the process. You can retry any time.",panel:"Go to my dashboard"}};
+const L=(navigator.language||'es').toLowerCase().startsWith('en')?'en':'es';
+document.documentElement.lang=L;
+document.querySelectorAll('[data-i]').forEach(e=>e.textContent=T[L][e.dataset.i]);
+const btn=document.getElementById('connect'),st=document.getElementById('status');
+const say=(k,c)=>{st.textContent=T[L][k];st.className=c||''};
+document.getElementById('panel').textContent=T[L].panel;
+let ready=false; boot().then(()=>{ready=true});
+btn.addEventListener('click',()=>{
+  if(!ready) return say('err','bad');
+  btn.disabled=true; say('w');
+  connectWA(j=>{ btn.disabled=false;
+    if(j.cancel) return say('cancel');
+    if(j.ok) return say('ok','good');
+    say(j.pending?'pend':'err',j.pending?'':'bad'); });
 });
 </script>
 </body>

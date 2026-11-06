@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Panel — WhatKiamber</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+<style>
+.panel{max-width:980px;padding-top:6vh}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.ghost{font:inherit;background:none;border:1px solid var(--muted);color:var(--ink);border-radius:8px;padding:6px 14px;cursor:pointer}
+.field{display:block;width:100%;max-width:360px;font:inherit;padding:12px 14px;margin:0 0 12px;border-radius:10px;border:1px solid var(--muted);background:transparent;color:var(--ink)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:8px 0 0}
+.stats{display:flex;flex-wrap:wrap;gap:36px;margin:28px 0 8px}.stats b{display:block;font-size:2.4rem;line-height:1;font-weight:800}.stats span{color:var(--muted);font-size:.9rem}
+.tablewrap{overflow-x:auto;margin-top:12px}table{border-collapse:collapse;width:100%;min-width:640px}th{text-align:left;font-weight:600;color:var(--muted);font-size:.85rem;padding:8px 10px;border-bottom:1px solid var(--muted)}
+td{padding:12px 10px;border-bottom:1px solid color-mix(in srgb,var(--muted) 30%,transparent)}tr.c{cursor:pointer}tr.c:hover td{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.b{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.82rem;font-weight:600}.ok{background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent)}.warn{background:#f2b13d33;color:#9a6a00}.bad2{background:#e5484d22;color:var(--bad)}.n{background:#8883;color:var(--muted)}
+.tpl{padding:4px 10px 14px;color:var(--muted);font-size:.9rem}.tpl div{padding:3px 0}.act{list-style:none;padding:0;margin:8px 0 0;font-size:.9rem;color:var(--muted)}.act li{padding:4px 0}
+.empty{padding:28px 0;color:var(--muted)}
+</style></head>
+<body><main class="wrap panel">
+<div class="top"><p class="brand"><a href="/" style="text-decoration:none">WhatKiamber</a></p>
+<p id="who" class="small" hidden><span id="mail"></span> &nbsp;<button id="out" class="ghost">Salir</button></p></div>
+
+<section id="auth" hidden>
+  <h1>Tu panel de WhatsApp</h1>
+  <p class="lead">Entra o crea tu cuenta para conectar tu número y ver su estado.</p>
+  <form id="f"><input class="field" id="em" type="email" placeholder="Correo" autocomplete="email" required>
+  <input class="field" id="pw" type="password" placeholder="Contraseña (mínimo 8 caracteres)" autocomplete="current-password" minlength="8" required>
+  <div class="row"><button class="btn" type="submit">Entrar</button><button class="ghost" id="up" type="button">Crear cuenta</button></div></form>
+  <p id="amsg" role="status"></p>
+</section>
+
+<section id="dash" hidden>
+  <h1>Tus números</h1>
+  <div class="stats"><div><b id="s1">0</b><span>Números conectados</span></div><div><b id="s2">0</b><span>Calidad verde</span></div><div><b id="s3">0</b><span>Plantillas aprobadas</span></div></div>
+  <div class="row"><button class="btn" id="connect">Conectar WhatsApp con Facebook</button><button class="ghost" id="sync">Sincronizar</button></div>
+  <p id="status" role="status"></p>
+  <div class="tablewrap"><table><thead><tr><th>Número</th><th>Nombre</th><th>Estado</th><th>Calidad</th><th>Nivel</th><th>Token vence</th></tr></thead><tbody id="rows"></tbody></table></div>
+  <div id="empty" class="empty" hidden>Aún no tienes números conectados. Conecta el primero con el botón de arriba.</div>
+  <h2>Actividad reciente</h2><ul class="act" id="act"></ul>
+</section>
+<footer><a href="/privacy">Privacidad</a><a href="/terms">Términos</a><a href="/data-deletion">Eliminar datos</a></footer>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="/app.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'—':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const say=(t,c)=>{$('status').textContent=t;$('status').className=c||''};
+const QL={GREEN:['Verde','ok'],YELLOW:['Media','warn'],RED:['Baja','bad2']}, ST={live:['Activo','ok'],pending:['Pendiente','warn'],error:['Error','bad2']};
+const badge=(m,k)=>{const v=m[k]||['—','n'];return `<span class="b ${v[1]}">${v[0]}</span>`};
+const fmt=d=>d?new Date(d).toLocaleDateString('es-CO'):'—';
+const ACT={'connection.created':'Número conectado','connections.synced':'Sincronización manual'};
+let DATA=null, open=null;
+
+async function api(path,opt){
+  const r=await fetch(path,{...(opt||{}),headers:{'Content-Type':'application/json',Authorization:'Bearer '+SESSION.access_token}});
+  const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||'Error'); return j;
+}
+function render(){
+  const c=DATA.connections;
+  $('s1').textContent=c.filter(x=>x.status==='live').length;
+  $('s2').textContent=c.filter(x=>x.quality==='GREEN').length;
+  $('s3').textContent=DATA.templates.filter(t=>t.status==='APPROVED').length;
+  $('empty').hidden=c.length>0;
+  $('rows').innerHTML=c.map(x=>{
+    const t=DATA.templates.filter(t=>t.connection_id===x.id);
+    return `<tr class="c" data-id="${esc(x.id)}"><td>${esc(x.display_phone)}</td><td>${esc(x.verified_name||x.name)}</td><td>${badge(ST,x.status)}</td><td>${badge(QL,x.quality)}</td><td>${esc((x.tier||'').replace('TIER_',''))}</td><td>${fmt(x.token_expires_at)}</td></tr>`+
+    (open===x.id?`<tr><td colspan="6" class="tpl"><b>Plantillas (${t.length})</b>${t.length?t.map(p=>`<div>${esc(p.name)} · ${esc(p.language)} · ${esc(p.category)} · ${esc(p.status)}</div>`).join(''):'<div>Sin plantillas todavía.</div>'}</td></tr>`:'');
+  }).join('');
+  document.querySelectorAll('tr.c').forEach(r=>r.onclick=()=>{open=open===r.dataset.id?null:r.dataset.id;render()});
+  $('act').innerHTML=DATA.activity.length?DATA.activity.map(a=>`<li>${fmt(a.at)} · ${esc(ACT[a.action]||a.action)}</li>`).join(''):'<li>Sin actividad todavía.</li>';
+}
+async function load(){ try{ DATA=await api('/api/connections'); render(); }catch(e){ say(e.message,'bad'); } }
+function view(){
+  const on=!!SESSION; $('auth').hidden=on; $('dash').hidden=!on; $('who').hidden=!on;
+  if(on){ $('mail').textContent=SESSION.user.email; load(); }
+}
+$('f').onsubmit=async e=>{ e.preventDefault(); $('amsg').textContent='Entrando…';
+  const {error}=await sb.auth.signInWithPassword({email:$('em').value,password:$('pw').value});
+  $('amsg').textContent=error?'Correo o contraseña incorrectos.':''; $('amsg').className=error?'bad':''; };
+$('up').onclick=async()=>{ if(!$('f').reportValidity()) return; $('amsg').textContent='Creando cuenta…';
+  const {data,error}=await sb.auth.signUp({email:$('em').value,password:$('pw').value,options:{emailRedirectTo:location.origin+'/panel'}});
+  if(error){ $('amsg').textContent=error.message; $('amsg').className='bad'; }
+  else if(!data.session){ $('amsg').textContent='Revisa tu correo para confirmar la cuenta y luego entra.'; $('amsg').className='good'; } };
+$('out').onclick=()=>sb.auth.signOut();
+$('sync').onclick=async()=>{ say('Sincronizando…'); try{ DATA=await api('/api/connections',{method:'POST',body:JSON.stringify({action:'sync'})}); render(); say('Datos actualizados.','good'); }catch(e){ say(e.message,'bad'); } };
+$('connect').onclick=()=>{ $('connect').disabled=true; say('Conectando tu cuenta… esto toma unos segundos.');
+  connectWA(async j=>{ $('connect').disabled=false;
+    if(j.cancel) return say('Cancelaste el proceso. Puedes reintentar cuando quieras.');
+    if(j.ok){ say('¡Listo! Tu WhatsApp quedó conectado.','good'); return load(); }
+    say(j.pending?'Tu cuenta se está activando. Pulsa Sincronizar en un minuto.':'No pudimos completar la conexión. Inténtalo de nuevo.',j.pending?'':'bad'); }); };
+boot().then(()=>{ view(); sb.auth.onAuthStateChange(()=>view()); });
+</script></body></html>

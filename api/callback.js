@@ -1,40 +1,61 @@
-export default async function handler(req,res){
- if(req.method!=='POST') return res.status(405).json({error:'POST only'});
- const {code}=req.body;
- if(!code) return res.status(400).json({error:'missing code'});
- const appId='811281598468466';
- const appSecret='adc3e9fa8df0abd2f9d0400d96fb9193';
- const redirect_uri='https://prooveedordetecnologyia.vercel.app/api/callback';
- try{
-  // Exchange code for access_token
-  const tokenUrl=`https://graph.facebook.com/v20.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirect_uri)}&code=${encodeURIComponent(code)}`;
-  const tokenRes=await fetch(tokenUrl).then(r=>r.json());
-  if(!tokenRes.access_token) return res.status(400).json({step:'token exchange',error:tokenRes});
-  const access_token=tokenRes.access_token;
-  // Wait for propagation Kiamber 832691819931306 -> cositas 215054423376570
-  await new Promise(r=>setTimeout(r,15000));
-  // Get client WABAs - fixes empty businesses/wabas
-  const bmId='215054423376570';
-  const wabasUrl=`https://graph.facebook.com/v20.0/${bmId}/client_whatsapp_business_accounts?fields=id,name,ownership_type&access_token=${access_token}`;
-  const wabas=await fetch(wabasUrl).then(r=>r.json());
-  const bizUrl=`https://graph.facebook.com/v20.0/me/businesses?access_token=${access_token}`;
-  const businesses=await fetch(bizUrl).then(r=>r.json());
-  const debugUrl=`https://graph.facebook.com/v20.0/debug_token?input_token=${access_token}&access_token=${appId}|${appSecret}`;
-  const debug=await fetch(debugUrl).then(r=>r.json());
-  return res.status(200).json({
-   success:true,
-   app_id:appId,
-   config_id:'1725229885625909',
-   bm_owner:bmId,
-   access_token,
-   expires_in:'60 days',
-   permissions:['business_management','whatsapp_business_management','whatsapp_business_messaging'],
-   businesses,
-   wabas,
-   debug,
-   note:'Token listo para invitar onboarding@sellerchat.ai como admin a Kiamber 832691819931306 via POST /{business_id}/business_users'
-  });
- }catch(e){
-  return res.status(500).json({error:e.message,stack:e.stack});
- }
-}
+const { db, G, graph, enc, authUser, ensureOrg, audit, syncWaba } = require('./_lib');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+module.exports = async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
+  const user = await authUser(req);
+  if (!user) return res.status(401).json({ ok: false, error: 'Inicia sesión primero' });
+  const { code, waba_id } = req.body || {};
+  if (!code) return res.status(400).json({ ok: false, error: 'Missing code' });
+
+  try {
+    const orgId = await ensureOrg(user);
+
+    // 1) Cambiar el code de inmediato (vence en segundos). Con el SDK no se envía redirect_uri.
+    const short = await graph(`${G('oauth/access_token')}?` + new URLSearchParams({
+      client_id: process.env.APP_ID, client_secret: process.env.APP_SECRET, code }));
+
+    // 2) Token de larga duración (~60 días)
+    const long = await graph(`${G('oauth/access_token')}?` + new URLSearchParams({
+      grant_type: 'fb_exchange_token', client_id: process.env.APP_ID,
+      client_secret: process.env.APP_SECRET, fb_exchange_token: short.access_token }));
+    const token = long.access_token;
+    const expires = new Date(Date.now() + (long.expires_in || 5184000) * 1000).toISOString();
+
+    // 3) Esperar 15 s a que Meta comparta la WABA con tu BM
+    await sleep(15000);
+
+    // 4) WABAs del BM verificado (+ la que reportó el evento de Embedded Signup)
+    const ids = new Map();
+    if (process.env.SYSTEM_USER_TOKEN) {
+      try {
+        const list = await graph(`${G(process.env.BUSINESS_ID + '/client_whatsapp_business_accounts')}?fields=id,name&limit=100`,
+          { headers: { Authorization: `Bearer ${process.env.SYSTEM_USER_TOKEN}` } });
+        (list.data || []).forEach(w => ids.set(w.id, w.name));
+      } catch (e) { console.error('client_wabas:', e.message); }
+    }
+    if (waba_id) ids.set(waba_id, ids.get(waba_id) || null);
+    if (!ids.size) { // último respaldo: granular_scopes del token
+      const dbg = await graph(`${G('debug_token')}?` + new URLSearchParams({
+        input_token: token, access_token: `${process.env.APP_ID}|${process.env.APP_SECRET}` }));
+      const s = (dbg.data.granular_scopes || []).find(x => x.scope === 'whatsapp_business_management');
+      ((s && s.target_ids) || []).forEach(id => ids.set(id, null));
+    }
+    if (!ids.size) return res.status(202).json({ ok: false, pending: true });
+
+    // 5) Guardar (token cifrado), suscribir webhooks y sincronizar
+    for (const [id, name] of ids) {
+      const { data: conn, error } = await db.from('connections').upsert(
+        { org_id: orgId, waba_id: id, name, token_cipher: enc(token), token_expires_at: expires },
+        { onConflict: 'waba_id' }).select().single();
+      if (error) throw error;
+      await graph(G(`${id}/subscribed_apps`), { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      try { await syncWaba(conn, token); } catch (e) { console.error('sync:', e.message); }
+      await audit(orgId, user.id, 'connection.created', { waba_id: id });
+    }
+    return res.status(200).json({ ok: true, connected: ids.size });
+  } catch (e) {
+    console.error('callback error:', e.message);
+    return res.status(500).json({ ok: false, error: 'No se pudo completar la conexión' });
+  }
+};

@@ -1,7 +1,13 @@
 {
- "rewrites": [
-  {"source": "/privacy", "destination": "/privacy.html"},
-  {"source": "/terms", "destination": "/terms.html"},
-  {"source": "/data-deletion", "destination": "/data-deletion.html"}
- ]
+  "rewrites": [
+    { "source": "/panel", "destination": "/panel.html" },
+    { "source": "/privacy", "destination": "/privacy.html" },
+    { "source": "/terms", "destination": "/terms.html" },
+    { "source": "/data-deletion", "destination": "/data-deletion.html" }
+  ],
+  "functions": { "api/callback.js": { "maxDuration": 60 }, "api/connections.js": { "maxDuration": 30 } },
+  "headers": [{ "source": "/(.*)", "headers": [
+    { "key": "X-Content-Type-Options", "value": "nosniff" },
+    { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+  ]}]
 }
