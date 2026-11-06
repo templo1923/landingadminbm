@@ -31,7 +31,7 @@ td{padding:12px 10px;border-bottom:1px solid color-mix(in srgb,var(--muted) 30%,
 <section id="dash" hidden>
   <h1>Tus números</h1>
   <div class="stats"><div><b id="s1">0</b><span>Números conectados</span></div><div><b id="s2">0</b><span>Calidad verde</span></div><div><b id="s3">0</b><span>Plantillas aprobadas</span></div></div>
-  <div class="row"><button class="btn" id="connect">Conectar WhatsApp con Facebook</button><button class="ghost" id="sync">Sincronizar</button></div>
+  <div class="row"><button class="btn" id="connect">Conectar WhatsApp con Facebook</button><button class="ghost" id="sync">Sincronizar</button><button class="ghost" id="reload">Actualizar</button></div>
   <p id="status" role="status"></p>
   <div class="tablewrap"><table><thead><tr><th>Número</th><th>Nombre</th><th>Estado</th><th>Calidad</th><th>Nivel</th><th>Token vence</th></tr></thead><tbody id="rows"></tbody></table></div>
   <div id="empty" class="empty" hidden>Aún no tienes números conectados. Conecta el primero con el botón de arriba.</div>
@@ -69,6 +69,7 @@ function render(){
   document.querySelectorAll('tr.c').forEach(r=>r.onclick=()=>{open=open===r.dataset.id?null:r.dataset.id;render()});
   $('act').innerHTML=DATA.activity.length?DATA.activity.map(a=>`<li>${fmt(a.at)} · ${esc(ACT[a.action]||a.action)}</li>`).join(''):'<li>Sin actividad todavía.</li>';
 }
+let busy=false;
 async function load(){ try{ DATA=await api('/api/connections'); render(); }catch(e){ say(e.message,'bad'); } }
 function view(){
   const on=!!SESSION; $('auth').hidden=on; $('dash').hidden=!on; $('who').hidden=!on;
@@ -83,10 +84,18 @@ $('up').onclick=async()=>{ if(!$('f').reportValidity()) return; $('amsg').textCo
   else if(!data.session){ $('amsg').textContent='Revisa tu correo para confirmar la cuenta y luego entra.'; $('amsg').className='good'; } };
 $('out').onclick=()=>sb.auth.signOut();
 $('sync').onclick=async()=>{ say('Sincronizando…'); try{ DATA=await api('/api/connections',{method:'POST',body:JSON.stringify({action:'sync'})}); render(); say('Datos actualizados.','good'); }catch(e){ say(e.message,'bad'); } };
-$('connect').onclick=()=>{ $('connect').disabled=true; say('Conectando tu cuenta… esto toma unos segundos.');
+$('reload').onclick=async()=>{ say('Actualizando…'); await load(); say(''); };
+async function poll(prev){ // busca la conexión nueva hasta ~75 s (Meta tarda en compartir la cuenta)
+  for(let i=0;i<15;i++){ await load(); if(DATA&&DATA.connections.length>prev) return true; say('Esperando a Meta… '+(i+1)+'/15'); await new Promise(r=>setTimeout(r,5000)); }
+  return false; }
+$('connect').onclick=()=>{ const prev=DATA?DATA.connections.length:0; $('connect').disabled=true; say('Conectando tu cuenta… esto toma unos segundos.');
   connectWA(async j=>{ $('connect').disabled=false;
     if(j.cancel) return say('Cancelaste el proceso. Puedes reintentar cuando quieras.');
-    if(j.ok){ say('¡Listo! Tu WhatsApp quedó conectado.','good'); return load(); }
-    say(j.pending?'Tu cuenta se está activando. Pulsa Sincronizar en un minuto.':'No pudimos completar la conexión. Inténtalo de nuevo.',j.pending?'':'bad'); }); };
+    busy=true; await load();
+    if(j.ok||(DATA&&DATA.connections.length>prev)){ busy=false; return say('¡Listo! Tu WhatsApp quedó conectado.','good'); }
+    say('Activando tu cuenta…'); const found=await poll(prev); busy=false;
+    say(found?'¡Listo! Tu WhatsApp quedó conectado.':'Aún no aparece. Pulsa Actualizar en un minuto.',found?'good':''); }); };
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&SESSION&&!busy) load(); });
+setInterval(()=>{ if(!document.hidden&&SESSION&&!busy) load(); },60000);
 boot().then(()=>{ view(); sb.auth.onAuthStateChange(()=>view()); });
 </script></body></html>

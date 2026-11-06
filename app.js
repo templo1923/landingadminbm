@@ -26,14 +26,18 @@ function connectWA(done) {
   FB.login(resp => {
     const code = resp.authResponse && resp.authResponse.code;
     if (!code) return done({ cancel: true });
-    setTimeout(async () => {
+    // Espera (máx. 6 s) el evento FINISH del popup, que trae la WABA, antes de llamar al backend.
+    const t0 = Date.now();
+    const send = async () => {
       try {
         const r = await fetch('/api/callback', { method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
           body: JSON.stringify({ code, waba_id: signup.waba_id, phone_number_id: signup.phone_number_id }) });
         done(await r.json());
       } catch (_) { done({ ok: false }); }
-    }, 800);
+    };
+    const wait = () => (signup.waba_id || Date.now() - t0 > 6000) ? send() : setTimeout(wait, 300);
+    wait();
   }, { config_id: CFG.configId, response_type: 'code', override_default_response_type: true,
        extras: { setup: {}, featureType: '', sessionInfoVersion: '3' } });
 }
