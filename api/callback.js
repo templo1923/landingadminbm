@@ -47,7 +47,8 @@ module.exports = async (req, res) => {
       const row = { org_id: orgId, waba_id: id, token_cipher: enc(token), token_expires_at: expires };
       if (name) row.name = name;
       if (id === waba_id) { if (phone_number_id) row.phone_number_id = phone_number_id; if (business_id) row.business_id = business_id; }
-      const { data: conn, error } = await db.from('connections').upsert(row, { onConflict: 'waba_id' }).select().single();
+      let { data: conn, error } = await db.from('connections').upsert(row, { onConflict: 'waba_id' }).select().single();
+      if (error && row.business_id) { delete row.business_id; ({ data: conn, error } = await db.from('connections').upsert(row, { onConflict: 'waba_id' }).select().single()); }
       if (error) throw error;
       await graph(G(`${id}/subscribed_apps`), { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
       try { await syncWaba(conn, token); } catch (e) { console.error('sync:', e.message); }
