@@ -7,3 +7,4 @@
    URL `https://prooveedordetecnologyia.vercel.app/api/webhook` · Verify token = WEBHOOK_VERIFY_TOKEN.
    Campos: `messages`, `account_update`, `phone_number_quality_update`, `message_template_status_update`.
 4. Sube a Git y Vercel despliega solo.
+5. En el panel, “Diagnóstico de Meta” consulta directamente la Graph API por conexión; no expone ni guarda tokens.
