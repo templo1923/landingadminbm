@@ -1,4 +1,4 @@
-const { db, G, graph, dec, authUser, ensureOrg, syncWaba } = require('./_lib');
+const { db, G, graph, dec, authUser, ensureOrg, syncWaba, userError } = require('./_lib');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -22,6 +22,6 @@ module.exports = async (req, res) => {
     return res.status(200).json({ ok: true, template: created });
   } catch (e) {
     console.error('template create error:', e.message);
-    return res.status(500).json({ error: e.message || 'No se pudo crear la plantilla' });
+    return res.status(500).json({ error: userError(e) });
   }
 };

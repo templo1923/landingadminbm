@@ -1,14 +1,15 @@
 const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 
-const V = process.env.GRAPH_VERSION || 'v20.0';
+for (const k of Object.keys(process.env)) if (typeof process.env[k] === 'string') process.env[k] = process.env[k].trim(); // evita saltos de línea ocultos
+const V = process.env.GRAPH_VERSION || 'v26.0';
 const G = p => `https://graph.facebook.com/${V}/${p}`;
 const db = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
 async function graph(url, opts) {
   const r = await fetch(url, opts);
   const j = await r.json().catch(() => ({}));
-  if (!r.ok || j.error) throw new Error(j.error ? j.error.message : `HTTP ${r.status}`);
+  if (!r.ok || j.error) { const err = new Error(j.error ? j.error.message : `HTTP ${r.status}`); err.code = j.error && j.error.code; throw err; }
   return j;
 }
 
@@ -59,4 +60,11 @@ async function syncWaba(conn, token) {
   } catch (e) { console.error('templates sync:', e.message); }
 }
 
-module.exports = { db, G, graph, enc, dec, authUser, ensureOrg, audit, syncWaba };
+const userError = e => ({
+  131047: 'Pasaron más de 24 h desde el último mensaje del cliente: envía una plantilla aprobada.',
+  131030: 'Ese número no está en la lista de destinatarios permitidos de tu cuenta de pruebas.',
+  132001: 'La plantilla no existe o no está aprobada en ese idioma.',
+  190: 'El acceso expiró: vuelve a conectar el número.'
+})[e && e.code] || (e && e.code ? `Meta rechazó la solicitud (código ${e.code}).` : 'No se pudo completar la acción.');
+
+module.exports = { userError, db, G, graph, enc, dec, authUser, ensureOrg, audit, syncWaba };

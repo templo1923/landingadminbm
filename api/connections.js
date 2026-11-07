@@ -1,5 +1,5 @@
 const { db, dec, authUser, ensureOrg, audit, syncWaba } = require('./_lib');
-const COLS = 'id,waba_id,name,phone_number_id,display_phone,verified_name,status,quality,tier,token_expires_at,synced_at,created_at';
+const COLS = 'id,business_id,waba_id,name,phone_number_id,display_phone,verified_name,status,quality,tier,token_expires_at,synced_at,created_at';
 
 module.exports = async (req, res) => {
   const user = await authUser(req);
