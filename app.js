@@ -23,10 +23,13 @@ async function boot() {
 }
 
 // Debe llamarse directamente desde un click (sin await antes) para que el popup no se bloquee.
-function connectWA(done) {
+// mode: 'dedicado' (número nuevo, sin WhatsApp App) o 'coexistencia' (mantener WhatsApp Business App).
+// Si no se pasa mode, queda en 'dedicado' para no romper lo viejo. Webhook único global /api/webhook, sin override por ahora.
+function connectWA(done, mode) {
   if (!SESSION) { location.href = '/panel'; return; }
   signup = {};
   const token = SESSION.access_token;
+  const cleanMode = mode === 'coexistencia' ? 'coexistencia' : 'dedicado';
   FB.login(resp => {
     const code = resp.authResponse && resp.authResponse.code;
     if (!code) return done({ cancel: true });
@@ -36,12 +39,12 @@ function connectWA(done) {
       try {
         const r = await fetch('/api/callback', { method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
-          body: JSON.stringify({ code, waba_id: signup.waba_id, phone_number_id: signup.phone_number_id, business_id: signup.business_id }) });
+          body: JSON.stringify({ code, waba_id: signup.waba_id, phone_number_id: signup.phone_number_id, business_id: signup.business_id, mode: cleanMode }) });
         done(await r.json());
       } catch (_) { done({ ok: false }); }
     };
     const wait = () => (signup.waba_id || Date.now() - t0 > 6000) ? send() : setTimeout(wait, 300);
     wait();
   }, { config_id: CFG.configId, response_type: 'code', override_default_response_type: true,
-       extras: { setup: {}, featureType: '', sessionInfoVersion: '3' } });
+       extras: { setup: {}, featureType: '', sessionInfoVersion: '3', coexistence: cleanMode === 'coexistencia' } });
 }
