@@ -1,0 +1,38 @@
+const crypto = require('crypto');
+const { db } = require('./_lib');
+
+function parseSignedRequest(signed) {
+  const parts = String(signed || '').split('.');
+  if (parts.length !== 2) throw new Error('signed_request invalido');
+  const [sig, payload] = parts;
+  const data = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));
+  const expected = crypto.createHmac('sha256', (process.env.APP_SECRET || '').trim())
+    .update(payload).digest('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  if (sig !== expected) throw new Error('Firma invalida');
+  return data;
+}
+
+module.exports = async (req, res) => {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  try {
+    const signed = (req.body && (req.body.signed_request || req.body.signedRequest)) || '';
+    if (!signed) return res.status(400).json({ error: 'Falta signed_request' });
+    const data = parseSignedRequest(signed);
+    const fbUserId = data.user_id;
+    const confirmation_code = 'DEL-' + Date.now() + '-' + String(fbUserId || 'unknown');
+
+    // Si en el futuro guardas fb_user_id en members, aquí borras esa org completa.
+    // Por ahora no borramos a ciegas: el usuario también puede pedir borrado por correo
+    // como dice /data-deletion. Dejamos el log para auditoría.
+    try {
+      await db.from('audit_log').insert({ org_id: null, actor: 'meta-data-deletion', action: 'data_deletion_requested', meta: { fb_user_id: fbUserId || null, confirmation_code } });
+    } catch (_) {}
+
+    return res.status(200).json({
+      url: 'https://prooveedordetecnologyia.vercel.app/data-deletion',
+      confirmation_code
+    });
+  } catch (e) {
+    console.error('data-deletion error:', e.message);
+    return res.status(400).json({ error: 'No se pudo procesar' });
+  }
