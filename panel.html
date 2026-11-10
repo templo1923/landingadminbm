@@ -23,7 +23,6 @@ td{padding:12px 10px;border-bottom:1px solid color-mix(in srgb,var(--muted) 30%,
 <body><main class="wrap panel">
 <div class="top"><p class="brand"><a href="/" style="text-decoration:none">WhatKiamber</a></p>
 <p id="who" class="small" hidden><span id="mail"></span> &nbsp;<button id="out" class="ghost">Salir</button></p></div>
-
 <section id="auth" hidden>
   <h1>Tu panel de WhatsApp</h1>
   <p class="lead">Entra o crea tu cuenta para conectar tu número y ver su estado.</p>
@@ -32,12 +31,11 @@ td{padding:12px 10px;border-bottom:1px solid color-mix(in srgb,var(--muted) 30%,
   <div class="row"><button class="btn" type="submit">Entrar</button><button class="ghost" id="up" type="button">Crear cuenta</button></div></form>
   <p id="amsg" role="status"></p>
 </section>
-
 <section id="dash" hidden>
   <aside class="side" aria-label="Navegación del panel"><div class="sidebrand"><span style="color:var(--accent)">W</span> WhatKiamber</div><div class="sidelabel">Monitor</div><button class="active" data-jump="overview">▦ &nbsp; Descripción general</button><button data-jump="connections">▣ &nbsp; Conexiones</button><button data-jump="templates">▤ &nbsp; Plantillas</button><button data-jump="monitor">◌ &nbsp; Monitor</button><button data-jump="usage">⌁ &nbsp; Uso</button><div class="sidelabel">Cuenta</div><button data-jump="billing">▱ &nbsp; Facturación</button><button data-jump="compliance">✓ &nbsp; Cumplimiento</button><button data-jump="settings">⚙ &nbsp; Ajustes</button><div class="sidefoot">API oficial de Meta<br><span class="b ok">● Activo</span></div></aside>
   <h1 id="overview">Descripción general</h1>
   <div class="stats"><div><b id="s1">0</b><span>Números conectados</span></div><div><b id="s2">0</b><span>Calidad verde</span></div><div><b id="s3">0</b><span>Plantillas aprobadas</span></div></div>
-  <div class="row"><button class="btn" id="connect">Conectar WhatsApp con Facebook</button><button class="ghost" id="sync">Sincronizar salud</button><button class="ghost" id="reload">Actualizar</button><button class="ghost" id="exportCsv">Exportar CSV</button></div>
+  <div class="row"><button class="btn" id="connect">Conectar número nuevo (Dedicado)</button><button class="ghost" id="connect-coex">Conectar manteniendo WhatsApp App (Coexistencia)</button><button class="ghost" id="sync">Sincronizar salud</button><button class="ghost" id="reload">Actualizar</button><button class="ghost" id="exportCsv">Exportar CSV</button></div>
   <p id="status" role="status"></p>
   <div class="row"><input class="field" id="connSearch" placeholder="Buscar número o WABA…" style="max-width:300px;margin:0"><select class="field" id="connFilter" style="max-width:170px;margin:0"><option value="all">Todos los estados</option><option value="live">Activos</option><option value="pending">Pendientes</option><option value="error">Con atención</option></select></div>
   <section id="connections"><h2>Conexiones</h2><div class="tablewrap"><table><thead><tr><th>Número</th><th>Nombre</th><th>Estado</th><th>Calidad</th><th>Nivel</th><th>Token vence</th></tr></thead><tbody id="rows"></tbody></table></div></section>
@@ -67,7 +65,6 @@ const badge=(m,k)=>{const v=m[k]||['—','n'];return `<span class="b ${v[1]}">${
 const fmt=d=>d?new Date(d).toLocaleDateString('es-CO'):'—';
 const ACT={'connection.created':'Número conectado','connections.synced':'Sincronización manual'};
 let DATA=null, open=null;
-
 async function api(path,opt){
   const r=await fetch(path,{...(opt||{}),headers:{'Content-Type':'application/json',Authorization:'Bearer '+SESSION.access_token}});
   const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||'Error'); return j;
@@ -116,16 +113,17 @@ $('checkWebhooks').onclick=async()=>{say('Comprobando webhooks…');try{const r=
 async function poll(prev){ // busca la conexión nueva hasta ~75 s (Meta tarda en compartir la cuenta)
   for(let i=0;i<15;i++){ await load(); if(DATA&&DATA.connections.length>prev) return true; say('Esperando a Meta… '+(i+1)+'/15'); await new Promise(r=>setTimeout(r,5000)); }
   return false; }
-$('connect').onclick=()=>{ const prev=DATA?DATA.connections.length:0; $('connect').disabled=true; say('Conectando tu cuenta… esto toma unos segundos.');
-  connectWA(async j=>{ $('connect').disabled=false;
+function startConnect(mode){ const prev=DATA?DATA.connections.length:0; $('connect').disabled=true; if($('connect-coex')) $('connect-coex').disabled=true; say('Conectando tu cuenta… esto toma unos segundos.');
+  connectWA(async j=>{ $('connect').disabled=false; if($('connect-coex')) $('connect-coex').disabled=false;
     if(j.cancel) return say('Cancelaste el proceso. Puedes reintentar cuando quieras.');
     busy=true; await load();
     if(j.ok||(DATA&&DATA.connections.length>prev)){ busy=false; return say('¡Listo! Tu WhatsApp quedó conectado.','good'); }
     say('Activando tu cuenta…'); const found=await poll(prev); busy=false;
     say(found?'¡Listo! Tu WhatsApp quedó conectado.':'Aún no aparece. Pulsa Actualizar en un minuto.',found?'good':''); }); };
+$('connect').onclick=()=>startConnect('dedicado');
+if($('connect-coex')) $('connect-coex').onclick=()=>startConnect('coexistencia');
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&SESSION&&!busy) load(); });
 setInterval(()=>{ if(!document.hidden&&SESSION&&!busy) load(); },60000);
-
 $('whUrl').textContent=location.origin+'/api/webhook';
 $('messageKind').onchange=()=>{ const t=$('messageKind').value==='template'; $('tplFields').hidden=!t; $('txtField').hidden=t; };
 $('messageForm').onsubmit=async e=>{ e.preventDefault(); say('Enviando…');
