@@ -23,6 +23,7 @@ td{padding:12px 10px;border-bottom:1px solid color-mix(in srgb,var(--muted) 30%,
 <body><main class="wrap panel">
 <div class="top"><p class="brand"><a href="/" style="text-decoration:none">WhatKiamber</a></p>
 <p id="who" class="small" hidden><span id="mail"></span> &nbsp;<button id="out" class="ghost">Salir</button></p></div>
+
 <section id="auth" hidden>
   <h1>Tu panel de WhatsApp</h1>
   <p class="lead">Entra o crea tu cuenta para conectar tu número y ver su estado.</p>
@@ -31,6 +32,7 @@ td{padding:12px 10px;border-bottom:1px solid color-mix(in srgb,var(--muted) 30%,
   <div class="row"><button class="btn" type="submit">Entrar</button><button class="ghost" id="up" type="button">Crear cuenta</button></div></form>
   <p id="amsg" role="status"></p>
 </section>
+
 <section id="dash" hidden>
   <aside class="side" aria-label="Navegación del panel"><div class="sidebrand"><span style="color:var(--accent)">W</span> WhatKiamber</div><div class="sidelabel">Monitor</div><button class="active" data-jump="overview">▦ &nbsp; Descripción general</button><button data-jump="connections">▣ &nbsp; Conexiones</button><button data-jump="templates">▤ &nbsp; Plantillas</button><button data-jump="monitor">◌ &nbsp; Monitor</button><button data-jump="usage">⌁ &nbsp; Uso</button><div class="sidelabel">Cuenta</div><button data-jump="billing">▱ &nbsp; Facturación</button><button data-jump="compliance">✓ &nbsp; Cumplimiento</button><button data-jump="settings">⚙ &nbsp; Ajustes</button><div class="sidefoot">API oficial de Meta<br><span class="b ok">● Activo</span></div></aside>
   <h1 id="overview">Descripción general</h1>
@@ -65,6 +67,7 @@ const badge=(m,k)=>{const v=m[k]||['—','n'];return `<span class="b ${v[1]}">${
 const fmt=d=>d?new Date(d).toLocaleDateString('es-CO'):'—';
 const ACT={'connection.created':'Número conectado','connections.synced':'Sincronización manual'};
 let DATA=null, open=null;
+
 async function api(path,opt){
   const r=await fetch(path,{...(opt||{}),headers:{'Content-Type':'application/json',Authorization:'Bearer '+SESSION.access_token}});
   const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||'Error'); return j;
@@ -124,6 +127,7 @@ $('connect').onclick=()=>startConnect('dedicado');
 if($('connect-coex')) $('connect-coex').onclick=()=>startConnect('coexistencia');
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&SESSION&&!busy) load(); });
 setInterval(()=>{ if(!document.hidden&&SESSION&&!busy) load(); },60000);
+
 $('whUrl').textContent=location.origin+'/api/webhook';
 $('messageKind').onchange=()=>{ const t=$('messageKind').value==='template'; $('tplFields').hidden=!t; $('txtField').hidden=t; };
 $('messageForm').onsubmit=async e=>{ e.preventDefault(); say('Enviando…');
