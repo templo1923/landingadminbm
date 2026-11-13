@@ -1,10 +1,21 @@
-# WhatKiamber — Embedded Signup + Panel
+# WhatKiamber - CORRECCIONES COMPLETAS
+Proveedor WhatsApp como Ranvedix, message-blind.
 
-1. Supabase → SQL Editor: ejecuta `schema_update.sql` (agrega la columna business_id y la tabla de mensajes; se puede correr varias veces).
-2. Vercel → Variables (Production): APP_ID, APP_SECRET, BUSINESS_ID, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY,
-   META_CONFIG_ID, WEBHOOK_VERIFY_TOKEN, SYSTEM_USER_TOKEN, TOKEN_ENC_KEY y `GRAPH_VERSION=v26.0`.
-3. Meta → tu app → WhatsApp → Configuración → Webhook:
-   URL `https://prooveedordetecnologyia.vercel.app/api/webhook` · Verify token = WEBHOOK_VERIFY_TOKEN.
-   Campos: `messages`, `account_update`, `phone_number_quality_update`, `message_template_status_update`.
-4. Sube a Git y Vercel despliega solo.
-5. En el panel, “Diagnóstico de Meta” consulta directamente la Graph API por conexión; no expone ni guarda tokens.
+## Que corrige
+1. app.js: ahora SI pasa URL + token + mode a callback.
+2. callback.js: guarda override + mode.
+3. lib.js en RAIZ, no en api/, no cuenta como funcion.
+4. api/panel.js: 1 funcion para overview, connections, routing, health, diagnostic, templates, usage, disconnect.
+5. vercel.json: quitado rewrite /data-deletion que chocaba con api/data-deletion.
+6. schema: coincide con lib.js (orgs + members). NO crea messages.
+7. BORRADO: inbox.js, message.js, webhook-status.js (guardaban mensajes, contradicen message-blind).
+
+## Total funciones: 5 de 12
+api/callback.js, api/webhook.js, api/panel.js, api/config.js, api/data-deletion/ (tu carpeta original)
+
+## Como instalar
+1. En GitHub BORRA de api/: overview.js, connections.js, routing.js, health.js, disconnect.js, diagnostic.js, templates.js, usage.js, _lib.js, lib.js, inbox.js, message.js, webhook-status.js, data-deletion.js (archivo, NO carpeta)
+2. Copia este ZIP: panel.html, app.js, lib.js (RAIZ), vercel.json, api/callback.js, api/webhook.js, api/panel.js, api/config.js
+3. Supabase: corre schema_overview_patch.sql UNA vez.
+4. Vercel env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY, TOKEN_ENC_KEY, APP_ID, CONFIG_ID, APP_SECRET, WEBHOOK_VERIFY_TOKEN, GRAPH_VERSION=v21.0
+5. Push a main. Debe decir Ready.
