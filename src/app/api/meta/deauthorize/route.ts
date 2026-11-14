@@ -81,7 +81,7 @@ async function extractSignedRequest(request: NextRequest) {
 async function handleDeauthorize(request: NextRequest) {
   const currentUserId = await resolveCurrentSupabaseUserId();
   const signedRequest = await extractSignedRequest(request);
-  const appSecret = process.env.FACEBOOK_APP_SECRET;
+  const appSecret = process.env.FACEBOOK_APP_SECRET ?? process.env.APP_SECRET;
 
   let metaUserId: string | null = null;
 

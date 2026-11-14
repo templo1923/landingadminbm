@@ -13,11 +13,14 @@ interface WebhookChangeValue {
 interface WebhookChange { field?: string; value?: WebhookChangeValue }
 interface WhatsAppWebhookPayload { entry?: Array<{ id?: string; changes?: WebhookChange[] }> }
 
+const WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN ?? process.env.WEBHOOK_VERIFY_TOKEN;
+const FACEBOOK_APP_SECRET = process.env.FACEBOOK_APP_SECRET ?? process.env.APP_SECRET;
+
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     if (
         searchParams.get('hub.mode') === 'subscribe' &&
-        searchParams.get('hub.verify_token') === process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN &&
+        searchParams.get('hub.verify_token') === WEBHOOK_VERIFY_TOKEN &&
         searchParams.get('hub.challenge')
     ) {
         return new NextResponse(searchParams.get('hub.challenge'), { status: 200 });
@@ -35,7 +38,7 @@ function isValidMetaSignature(rawBody: Buffer, signature: string, appSecret: str
 
 export async function POST(request: NextRequest) {
     try {
-        const appSecret = process.env.FACEBOOK_APP_SECRET;
+        const appSecret = FACEBOOK_APP_SECRET;
         if (!appSecret) return NextResponse.json({ error: 'Webhook is not configured.' }, { status: 500 });
         const rawBody = Buffer.from(await request.arrayBuffer());
         if (!isValidMetaSignature(rawBody, request.headers.get('x-hub-signature-256') ?? '', appSecret)) {

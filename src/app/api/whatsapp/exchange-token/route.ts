@@ -35,8 +35,8 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID;
-        const appSecret = process.env.FACEBOOK_APP_SECRET;
+        const appId = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID ?? process.env.APP_ID;
+        const appSecret = process.env.FACEBOOK_APP_SECRET ?? process.env.APP_SECRET;
         if (!appId || !appSecret) {
             console.error('[Suscripta] Missing env vars:', { appId: !!appId, appSecret: !!appSecret });
             return NextResponse.json(
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Exchange the temporary code for a long-lived access token
-        const graphVersion = process.env.META_GRAPH_VERSION ?? 'v27.0';
+        const graphVersion = process.env.META_GRAPH_VERSION ?? process.env.GRAPH_VERSION ?? 'v27.0';
         const tokenUrl = new URL(`https://graph.facebook.com/${graphVersion}/oauth/access_token`);
         tokenUrl.searchParams.set('client_id', appId);
         tokenUrl.searchParams.set('client_secret', appSecret);

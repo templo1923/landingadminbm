@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-const GRAPH_API_VERSION = process.env.META_GRAPH_VERSION ?? 'v27.0';
+const GRAPH_API_VERSION = process.env.META_GRAPH_VERSION ?? process.env.GRAPH_VERSION ?? 'v27.0';
 const GRAPH_API_BASE_URL = `https://graph.facebook.com/${GRAPH_API_VERSION}`;
 
 export interface StoredWhatsAppConnection {
@@ -43,7 +43,7 @@ interface MetaGraphError {
 }
 
 function getTokenEncryptionKey() {
-    const encoded = process.env.TOKEN_ENCRYPTION_KEY;
+    const encoded = process.env.TOKEN_ENCRYPTION_KEY ?? process.env.TOKEN_ENC_KEY;
     if (!encoded) throw new Error('TOKEN_ENCRYPTION_KEY is not configured.');
     const key = Buffer.from(encoded, 'base64');
     if (key.length !== 32) throw new Error('TOKEN_ENCRYPTION_KEY must be a base64-encoded 32-byte key.');
